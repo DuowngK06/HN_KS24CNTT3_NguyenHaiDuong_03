@@ -1,177 +1,258 @@
-import React, { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 
-function User Interface() {
-    // State quản lý danh sách sản phẩm
-    const [products, setProducts] = useState([]);
+// ---- Utils ----
+const vnd = new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+});
+
+function classNames(...arr) {
+    return arr.filter(Boolean).join(" ");
+}
+
+
+
+
+const seedProducts = [
+    { id: crypto.randomUUID(), name: "Laptop Dell XPS 13", price: 29990000, inStock: true },
+    { id: crypto.randomUUID(), name: "Chuột Logitech MX Master 3S", price: 2490000, inStock: false },
+    { id: crypto.randomUUID(), name: "Bàn phím Keychron K6", price: 2190000, inStock: true },
+];
+
+export default function ProductManager() {
+
+    const [products, setProducts] = useState(seedProducts);
+
     const [name, setName] = useState("");
     const [price, setPrice] = useState("");
     const [inStock, setInStock] = useState(true);
 
-    // Lấy dữ liệu từ LocalStorage khi load trang
-    useEffect(() => {
-        const data = localStorage.getItem("products");
-        if (data) {
-            setProducts(JSON.parse(data));
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(3);
+
+
+    function resetToFirstPage() {
+        setPage(1);
+    }
+
+    const totalPages = Math.max(1, Math.ceil(products.length / pageSize));
+    const pagedProducts = useMemo(() => {
+        const start = (page - 1) * pageSize;
+        return products.slice(start, start + pageSize);
+    }, [products, page, pageSize]);
+
+    function addProduct() {
+        const trimmed = name.trim();
+        const num = Number(String(price).replace(/[^\d.-]/g, ""));
+
+        if (!trimmed) {
+            alert("Vui lòng nhập tên sản phẩm");
+            return;
         }
-    }, []);
+        if (!Number.isFinite(num) || num <= 0) {
+            alert("Giá phải là số > 0");
+            return;
+        }
 
-    // Lưu dữ liệu xuống LocalStorage khi products thay đổi
-    useEffect(() => {
-        localStorage.setItem("products", JSON.stringify(products));
-    }, [products]);
-
-    // Thêm sản phẩm mới
-    const addProduct = () => {
-        if (!name || !price) return;
         const newProduct = {
-            id: Date.now(),
-            name: name,
-            price: Number(price),
-            inStock: inStock,
-            marked: false,
+            id: crypto.randomUUID(),
+            name: trimmed,
+            price: Math.round(num),
+            inStock,
         };
-        setProducts([...products, newProduct]);
+        setProducts((prev) => [newProduct, ...prev]);
         setName("");
         setPrice("");
         setInStock(true);
-    };
+        resetToFirstPage();
+    }
 
-    // Đánh dấu sản phẩm
-    const toggleMark = (id) => {
-        const updated = products.map((p) =>
-            p.id === id ? { ...p, marked: !p.marked } : p
+    function deleteProduct(id) {
+        setProducts((prev) => prev.filter((p) => p.id !== id));
+        if ((page - 1) * pageSize >= products.length - 1) {
+
+            setPage((p) => Math.max(1, p - 1));
+        }
+    }
+
+    function toggleStock(id) {
+        setProducts((prev) =>
+            prev.map((p) => (p.id === id ? { ...p, inStock: !p.inStock } : p))
         );
-        setProducts(updated);
-    };
+    }
 
-    // Xóa sản phẩm
-    const deleteProduct = (id) => {
-        const updated = products.filter((p) => p.id !== id);
-        setProducts(updated);
-    };
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-slate-50 p-4 md:p-8">
             {/* Header */}
-            <div className="bg-blue-600 text-white py-6 flex justify-center shadow">
-                <div className="flex items-center gap-2">
+            <div className="mx-auto max-w-5xl">
+                <div className="rounded-2xl bg-blue-600 text-white p-6 shadow-lg mb-6 flex items-center gap-3">
                     <span className="text-3xl">📦</span>
-                    <h1 className="text-2xl font-bold">Quản lý Sản phẩm</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold">Quản lý Sản phẩm</h1>
                 </div>
-            </div>
 
-            {/* Nội dung chính */}
-            <div className="flex justify-center mt-6">
-                <div className="w-full max-w-4xl space-y-6">
-                    {/* Form thêm sản phẩm */}
-                    <div className="bg-white p-5 rounded-xl shadow">
-                        <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                            <span className="text-blue-600">+</span> Thêm sản phẩm mới
-                        </h2>
-                        <div className="flex items-center gap-3">
-                            <input
-                                type="text"
-                                placeholder="Tên sản phẩm"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="border px-3 py-2 rounded-lg w-1/2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                            />
-                            <input
-                                type="number"
-                                placeholder="Giá (đ)"
-                                value={price}
-                                onChange={(e) => setPrice(e.target.value)}
-                                className="border px-3 py-2 rounded-lg w-1/4 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                            />
-                            <label className="flex items-center gap-2 text-sm">
-                                <input
-                                    type="checkbox"
-                                    checked={inStock}
-                                    onChange={() => setInStock(!inStock)}
-                                    className="w-4 h-4"
-                                />
-                                Còn hàng
-                            </label>
-                            <button
-                                onClick={addProduct}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
-                            >
-                                Thêm
-                            </button>
-                        </div>
+
+                <div className="rounded-2xl bg-white shadow p-4 md:p-6 mb-6">
+                    <div className="flex items-center gap-2 mb-4 text-slate-700 font-semibold">
+                        <span className="text-xl">＋</span>
+                        <span>Thêm sản phẩm mới</span>
                     </div>
 
-                    {/* Danh sách sản phẩm */}
-                    <div className="bg-white p-5 rounded-xl shadow">
-                        <h2 className="font-semibold text-lg mb-4 border-b pb-2">
-                            Danh sách sản phẩm
-                        </h2>
-                        <table className="w-full border-collapse">
+                    <div className="flex flex-col md:flex-row gap-3">
+                        <input
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="Tên sản phẩm"
+                            className="flex-1 rounded-xl border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <input
+                            value={price}
+                            onChange={(e) => setPrice(e.target.value.replace(/[^\d]/g, ""))}
+                            placeholder="Giá (₫)"
+                            inputMode="numeric"
+                            className="w-full md:w-40 rounded-xl border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <label className="inline-flex items-center gap-2 select-none">
+                            <input
+                                type="checkbox"
+                                checked={inStock}
+                                onChange={(e) => setInStock(e.target.checked)}
+                                className="h-4 w-4"
+                            />
+                            <span>Còn hàng</span>
+                        </label>
+                        <button
+                            onClick={addProduct}
+                            className="rounded-xl bg-blue-600 text-white px-5 py-2 font-medium hover:bg-blue-700 active:translate-y-px"
+                        >
+                            Thêm
+                        </button>
+                    </div>
+                </div>
+
+
+                <div className="rounded-2xl bg-white shadow p-4 md:p-6">
+                    <div className="flex items-center gap-2 mb-4 text-slate-700 font-semibold">
+                        <span className="text-xl">📋</span>
+                        <span>Danh sách sản phẩm</span>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm">
                             <thead>
-                                <tr className="bg-gray-100 text-left text-sm">
-                                    <th className="p-3">Tên sản phẩm</th>
-                                    <th className="p-3">Giá</th>
-                                    <th className="p-3">Trạng thái</th>
-                                    <th className="p-3">Hành động</th>
+                                <tr className="text-left text-slate-500 border-b">
+                                    <th className="py-2 pr-4">Tên sản phẩm</th>
+                                    <th className="py-2 pr-4">Giá</th>
+                                    <th className="py-2 pr-4">Trạng thái</th>
+                                    <th className="py-2 pr-4">Hành động</th>
                                 </tr>
                             </thead>
-                            <tbody className="text-sm">
-                                {products.length === 0 ? (
+                            <tbody>
+                                {pagedProducts.length === 0 && (
                                     <tr>
-                                        <td colSpan={4} className="text-center p-6 text-gray-500">
+                                        <td colSpan={4} className="py-6 text-center text-slate-500">
                                             Chưa có sản phẩm nào
                                         </td>
                                     </tr>
-                                ) : (
-                                    products.map((p) => (
-                                        <tr
-                                            key={p.id}
-                                            className="border-t hover:bg-gray-50 transition"
-                                        >
-                                            <td
-                                                className={`p-3 ${p.marked
-                                                    ? "line-through text-gray-400"
-                                                    : "text-gray-800"
-                                                    }`}
-                                            >
-                                                {p.name}
-                                            </td>
-                                            <td className="p-3 text-green-600 font-semibold">
-                                                {p.price.toLocaleString()} đ
-                                            </td>
-                                            <td className="p-3">
-                                                {p.inStock ? (
-                                                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
-                                                        Còn hàng
-                                                    </span>
-                                                ) : (
-                                                    <span className="bg-red-100 text-red-600 px-2 py-1 rounded-full text-xs font-medium">
-                                                        Hết hàng
-                                                    </span>
+                                )}
+
+                                {pagedProducts.map((p) => (
+                                    <tr key={p.id} className="border-b last:border-b-0">
+                                        <td className="py-3 pr-4 font-medium text-slate-800">{p.name}</td>
+                                        <td className="py-3 pr-4 font-semibold">{vnd.format(p.price)}</td>
+                                        <td className="py-3 pr-4">
+                                            <span
+                                                className={classNames(
+                                                    "px-3 py-1 rounded-full text-xs font-semibold",
+                                                    p.inStock
+                                                        ? "bg-emerald-100 text-emerald-700"
+                                                        : "bg-rose-100 text-rose-700"
                                                 )}
-                                            </td>
-                                            <td className="p-3 flex gap-2">
+                                            >
+                                                {p.inStock ? "Còn hàng" : "Hết hàng"}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 pr-4">
+                                            <div className="flex gap-2">
                                                 <button
-                                                    onClick={() => toggleMark(p.id)}
-                                                    className="bg-blue-100 hover:bg-blue-200 text-blue-600 px-3 py-1 rounded-lg text-sm"
+                                                    onClick={() => toggleStock(p.id)}
+                                                    className="rounded-xl border px-3 py-1 hover:bg-slate-50"
+                                                    title="Đổi trạng thái còn/hết hàng"
                                                 >
                                                     Đánh dấu
                                                 </button>
                                                 <button
                                                     onClick={() => deleteProduct(p.id)}
-                                                    className="bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1 rounded-lg text-sm"
+                                                    className="rounded-xl border px-3 py-1 text-rose-700 hover:bg-rose-50"
                                                 >
                                                     Xóa
                                                 </button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
-                        <p className="text-sm text-gray-500 mt-3">
+                    </div>
+
+
+                    <div className="mt-4 flex flex-col md:flex-row items-center justify-between gap-3">
+                        <div className="text-sm text-slate-600">
                             Tổng: {products.length} sản phẩm
-                        </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="rounded-lg border px-3 py-1 disabled:opacity-40"
+                            >
+                                ←
+                            </button>
+
+                            <div className="flex items-center gap-1">
+                                {Array.from({ length: totalPages }).map((_, i) => {
+                                    const n = i + 1;
+                                    return (
+                                        <button
+                                            key={n}
+                                            onClick={() => setPage(n)}
+                                            className={classNames(
+                                                "rounded-lg border px-3 py-1 text-sm",
+                                                n === page ? "bg-blue-600 text-white border-blue-600" : "hover:bg-slate-50"
+                                            )}
+                                        >
+                                            {n}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <button
+                                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={page === totalPages}
+                                className="rounded-lg border px-3 py-1 disabled:opacity-40"
+                            >
+                                →
+                            </button>
+
+                            <select
+                                value={pageSize}
+                                onChange={(e) => {
+                                    setPageSize(Number(e.target.value));
+                                    resetToFirstPage();
+                                }}
+                                className="ml-2 rounded-lg border px-2 py-1"
+                                title="Số mục / trang"
+                            >
+                                {[3, 5, 10, 20].map((n) => (
+                                    <option key={n} value={n}>
+                                        {n} / page
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
