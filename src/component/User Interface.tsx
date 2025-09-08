@@ -1,18 +1,14 @@
 import { useMemo, useState } from "react";
 
-// ---- Utils ----
 const vnd = new Intl.NumberFormat("vi-VN", {
     style: "currency",
     currency: "VND",
     maximumFractionDigits: 0,
 });
 
-function classNames(...arr) {
+function classNames(...arr: (string | undefined | false)[]) {
     return arr.filter(Boolean).join(" ");
 }
-
-
-
 
 const seedProducts = [
     { id: crypto.randomUUID(), name: "Laptop Dell XPS 13", price: 29990000, inStock: true },
@@ -21,16 +17,13 @@ const seedProducts = [
 ];
 
 export default function ProductManager() {
-
     const [products, setProducts] = useState(seedProducts);
-
     const [name, setName] = useState("");
     const [price, setPrice] = useState("");
     const [inStock, setInStock] = useState(true);
 
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(3);
-
 
     function resetToFirstPage() {
         setPage(1);
@@ -44,7 +37,7 @@ export default function ProductManager() {
 
     function addProduct() {
         const trimmed = name.trim();
-        const num = Number(String(price).replace(/[^\d.-]/g, ""));
+        const num = Number(price);
 
         if (!trimmed) {
             alert("Vui lòng nhập tên sản phẩm");
@@ -68,20 +61,22 @@ export default function ProductManager() {
         resetToFirstPage();
     }
 
-    function deleteProduct(id) {
-        setProducts((prev) => prev.filter((p) => p.id !== id));
-        if ((page - 1) * pageSize >= products.length - 1) {
-
-            setPage((p) => Math.max(1, p - 1));
-        }
+    function deleteProduct(id: string) {
+        setProducts((prev) => {
+            const filtered = prev.filter((p) => p.id !== id);
+            // Nếu xóa hết sản phẩm ở trang hiện tại, chuyển về trang trước
+            if ((page - 1) * pageSize >= filtered.length) {
+                setPage((p) => Math.max(1, p - 1));
+            }
+            return filtered;
+        });
     }
 
-    function toggleStock(id) {
+    function toggleStock(id: string) {
         setProducts((prev) =>
             prev.map((p) => (p.id === id ? { ...p, inStock: !p.inStock } : p))
         );
     }
-
 
     return (
         <div className="min-h-screen bg-slate-50 p-4 md:p-8">
@@ -91,7 +86,6 @@ export default function ProductManager() {
                     <span className="text-3xl">📦</span>
                     <h1 className="text-2xl md:text-3xl font-bold">Quản lý Sản phẩm</h1>
                 </div>
-
 
                 <div className="rounded-2xl bg-white shadow p-4 md:p-6 mb-6">
                     <div className="flex items-center gap-2 mb-4 text-slate-700 font-semibold">
@@ -130,7 +124,6 @@ export default function ProductManager() {
                         </button>
                     </div>
                 </div>
-
 
                 <div className="rounded-2xl bg-white shadow p-4 md:p-6">
                     <div className="flex items-center gap-2 mb-4 text-slate-700 font-semibold">
@@ -195,7 +188,6 @@ export default function ProductManager() {
                             </tbody>
                         </table>
                     </div>
-
 
                     <div className="mt-4 flex flex-col md:flex-row items-center justify-between gap-3">
                         <div className="text-sm text-slate-600">
