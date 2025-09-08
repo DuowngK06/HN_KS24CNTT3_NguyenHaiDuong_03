@@ -16,7 +16,7 @@ const seedProducts = [
     { id: crypto.randomUUID(), name: "Bàn phím Keychron K6", price: 2190000, inStock: true },
 ];
 
-export default function ProductManager() {
+export default function UserInterfacet() {
     const [products, setProducts] = useState(seedProducts);
     const [name, setName] = useState("");
     const [price, setPrice] = useState("");
